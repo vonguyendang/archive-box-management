@@ -2,7 +2,6 @@
 session_start();
 require 'db_config.php';
 
-// (*** ĐÃ SỬA LOGIC Ở ĐÂY ***)
 // Bảo mật: Chỉ Admin (1) hoặc Staff (2) mới được thêm kệ
 if (!isset($_SESSION['user_id'])) {
     json_response(['error' => 'Bạn cần đăng nhập.'], 401);
@@ -12,7 +11,6 @@ $allowed_roles = [1, 2]; // 1 = admin, 2 = staff
 if (!in_array($_SESSION['role_id'], $allowed_roles)) {
     json_response(['error' => 'Bạn không có quyền thực hiện hành động này.'], 403);
 }
-// (*** KẾT THÚC SỬA LOGIC ***)
 
 $data = json_decode(file_get_contents('php://input'));
 $shelf_code = $data->shelf_code ?? null;
