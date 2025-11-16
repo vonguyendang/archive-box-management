@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Nhập - Kho Lưu Trữ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Đăng Nhập</h2>
+        <form id="login-form">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Tên đăng nhập</label>
+                <input type="text" id="username" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            </div>
+            <div class="mb-6">
+                <label class="block text-gray-700 text-sm font-bold mb-2">Mật khẩu</label>
+                <input type="password" id="password" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition duration-200">Đăng Nhập</button>
+        </form>
+        <div class="mt-4 text-center text-sm">
+            <a href="forgot_password.html" class="text-blue-600 hover:underline">Quên mật khẩu?</a>
+            <span class="mx-2">|</span>
+            <a href="register.html" class="text-blue-600 hover:underline">Đăng ký tài khoản</a>
+        </div>
+        <p id="message" class="mt-4 text-center text-red-500"></p>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = document.getElementById('message');
+            message.textContent = 'Đang xử lý...';
+            
+            const data = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const res = await fetch('api/login.php', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    message.className = "mt-4 text-center text-green-500";
+                    message.textContent = "Đăng nhập thành công! Đang chuyển hướng...";
+                    setTimeout(() => window.location.href = 'index.html', 1000);
+                } else {
+                    message.className = "mt-4 text-center text-red-500";
+                    message.textContent = result.error;
+                }
+            } catch (err) {
+                message.textContent = "Lỗi kết nối máy chủ.";
+            }
+        });
+    </script>
+</body>
+</html>
