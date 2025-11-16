@@ -1,4 +1,6 @@
 <?php
+// Đặt thời gian session là 8 giờ (28800 giây)
+ini_set('session.gc_maxlifetime', 28800);
 // Thông tin kết nối CSDL
 define('DB_HOST', 'localhost');
 define('DB_PORT', '3306');
