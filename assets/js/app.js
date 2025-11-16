@@ -66,6 +66,9 @@ class App {
             userRoleSelect: document.getElementById('user-role-select'),
             
             statsPage: document.getElementById('stats-page'),
+
+            logsPage: document.getElementById('logs-page'),
+            logsTableBody: document.getElementById('logs-table-body'),
             
             logoutBtn: document.getElementById('logout-btn'),
         };
@@ -176,7 +179,7 @@ class App {
         this.dom.sidebarToggleIcon.className = isClosed ? 'fas fa-bars fa-lg' : 'fas fa-times fa-lg';
     }
 
-
+    // (*** CẬP NHẬT HÀM NÀY ***)
     async checkAuthentication() {
         try {
             const authRes = await fetch('api/check_session.php');
@@ -188,11 +191,14 @@ class App {
             this.currentUser = authData.user;
             console.log(`Đã đăng nhập với tư cách: ${this.currentUser.fullname} (Role: ${this.currentUser.role_id})`);
             
+            // Chỉ ẩn "Quản lý User" nếu không phải Admin
             if (this.currentUser.role_id != 1) {
                 const userNav = document.querySelector('a[data-page="users"]');
-                if (userNav) {
-                    userNav.parentElement.style.display = 'none';
-                }
+                if (userNav) userNav.parentElement.style.display = 'none';
+                
+                // (*** XÓA BỎ: Khối code ẩn "Quản lý Logs" đã bị xóa ***)
+                // const logsNav = document.querySelector('a[data-page="logs"]');
+                // if (logsNav) logsNav.parentElement.style.display = 'none';
             }
             return true;
         } catch (e) {
@@ -264,18 +270,13 @@ class App {
         this.navigateTo(page);
     }
     
-    // (*** CẬP NHẬT HÀM NÀY ***)
     navigateTo(page) {
         this.dom.pageSections.forEach(p => p.classList.add('hidden'));
         const activePage = document.getElementById(`${page}-page`);
         if (activePage) activePage.classList.remove('hidden');
 
-        // CẬP NHẬT: Thay thế logic .active bằng class Tailwind trực tiếp
         this.dom.sidebarLinks.forEach(link => {
-            // Xóa active state khỏi tất cả
             link.classList.remove('bg-blue-600', 'text-white'); 
-        
-            // Thêm active state cho link được click
             if (link.dataset.page === page) {
                 link.classList.add('bg-blue-600', 'text-white');
             }
@@ -291,6 +292,9 @@ class App {
         }
         if (page === 'users') {
             this.renderUsersTable();
+        }
+        if (page === 'logs') {
+            this.renderLogsTable();
         }
 
         const isMobile = window.innerWidth < 768;
@@ -686,7 +690,6 @@ class App {
 
     
     // === Stats ===
-    // (*** CẬP NHẬT HÀM NÀY ***)
     async renderStatsCharts() {
         const statusCanvas = document.getElementById('status-chart');
         const shelfCanvas = document.getElementById('shelf-chart');
@@ -708,7 +711,6 @@ class App {
                 if (chart && typeof chart.destroy === 'function') chart.destroy();
             });
 
-            // 1. Chart Trạng Thái (Doughnut)
             const statusCtx = statusCanvas.getContext('2d');
             this.charts.statusChart = new Chart(statusCtx, {
                 type: 'doughnut',
@@ -722,7 +724,6 @@ class App {
                 options: { responsive: true, maintainAspectRatio: true } 
             });
 
-            // 2. Chart Kệ (Bar)
             const shelfCtx = shelfCanvas.getContext('2d');
             this.charts.shelfChart = new Chart(shelfCtx, {
                 type: 'bar',
@@ -737,7 +738,6 @@ class App {
                 options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } } 
             });
             
-            // 3. Chart Năm (Line)
             const yearCtx = yearCanvas.getContext('2d');
             this.charts.yearChart = new Chart(yearCtx, {
                 type: 'line',
@@ -815,6 +815,42 @@ class App {
             this.dom.usersTableBody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-red-500">${error.message}</td></tr>`;
         }
     }
+    
+    async renderLogsTable() {
+        this.dom.logsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-gray-500">Đang tải lịch sử...</td></tr>`;
+
+        try {
+            const response = await fetch('api/get_logs.php');
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Lỗi khi tải logs');
+            }
+            const logs = await response.json();
+            
+            const tbody = this.dom.logsTableBody;
+            tbody.innerHTML = '';
+
+            if (logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-gray-500">Chưa có lịch sử hoạt động nào.</td></tr>`;
+                return;
+            }
+
+            logs.forEach(log => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 align-middle">${log.log_time}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 align-middle font-medium">${log.username || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 align-middle">${log.action}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 align-middle">${log.detail || ''}</td>
+                    </tr>
+                `;
+            });
+
+        } catch (error) {
+            this.dom.logsTableBody.innerHTML = `<tr><td colspan="4" class="text-center p-6 text-red-500">${error.message}</td></tr>`;
+        }
+    }
+
 
     async showUserModal(userId) {
         this.dom.userForm.reset();

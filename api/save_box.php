@@ -1,5 +1,12 @@
 <?php
+session_start(); // (*** MỚI ***)
 require 'db_config.php';
+
+// (*** MỚI: Lấy ID người dùng từ session ***)
+$user_id = $_SESSION['user_id'] ?? null;
+if (!$user_id) {
+    json_response(['error' => 'Bạn cần đăng nhập để thực hiện hành động này.'], 401);
+}
 
 // Nhận dữ liệu JSON thô từ body của request
 $data = json_decode(file_get_contents('php://input'));
@@ -32,6 +39,9 @@ try {
         $stmt->execute($params);
         $message = 'Cập nhật thùng thành công!';
 
+        // (*** MỚI: Ghi log cập nhật ***)
+        write_log($pdo, $user_id, 'Cập nhật thùng', 'Cập nhật thùng ID ' . $id . ' (Mã: ' . $data->code . ')');
+
     } else {
         // --- THÊM MỚI (INSERT) ---
         $sql = "INSERT INTO boxes 
@@ -49,6 +59,9 @@ try {
         $stmt->execute($params);
         $id = $pdo->lastInsertId(); // Lấy ID vừa chèn
         $message = 'Thêm thùng mới thành công!';
+
+        // (*** MỚI: Ghi log thêm mới ***)
+        write_log($pdo, $user_id, 'Tạo thùng mới', 'Tạo thùng ID ' . $id . ' (Mã: ' . $data->code . ')');
     }
     
     // Trả về dữ liệu đã lưu (bao gồm cả ID) và thông báo

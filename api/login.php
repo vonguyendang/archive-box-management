@@ -20,6 +20,9 @@ try {
         $_SESSION['role_id'] = $user['role_id'];
         $_SESSION['fullname'] = $user['fullname'];
 
+        // (*** MỚI: Ghi log đăng nhập ***)
+        write_log($pdo, $user['id'], 'Đăng nhập', 'Người dùng "' . $user['username'] . '" đã đăng nhập.');
+
         json_response(['message' => 'Đăng nhập thành công!', 'redirect' => 'index.html']);
     } else {
         json_response(['error' => 'Tên đăng nhập hoặc mật khẩu không đúng (hoặc tài khoản bị khóa).'], 401);

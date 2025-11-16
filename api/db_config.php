@@ -34,6 +34,30 @@ function json_response($data, $code = 200) {
     exit;
 }
 
+// (*** MỚI: HÀM GHI LOG ***)
+/**
+ * Ghi lại hành động của người dùng vào bảng user_logs.
+ *
+ * @param PDO $pdo Đối tượng kết nối PDO.
+ * @param int $user_id ID của người dùng thực hiện hành động.
+ * @param string $action Mô tả ngắn gọn hành động (ví dụ: 'Đăng nhập', 'Xóa thùng').
+ * @param string|null $detail Chi tiết về hành động (ví dụ: 'Đã xóa thùng ID 5').
+ */
+function write_log($pdo, $user_id, $action, $detail = null) {
+    // Chúng ta không muốn lỗi ghi log làm hỏng request chính
+    // nên sẽ dùng try...catch ở đây
+    try {
+        $sql = "INSERT INTO user_logs (user_id, action, detail) VALUES (?, ?, ?)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$user_id, $action, $detail]);
+    } catch (\PDOException $e) {
+        // Trong môi trường production, bạn nên ghi lỗi này vào file log hệ thống
+        error_log('LỖI GHI LOG HỆ THỐNG: ' . $e->getMessage());
+    }
+}
+// (*** KẾT THÚC PHẦN MỚI ***)
+
+
 // Đặt header chung cho các API
 header('Content-Type: application/json');
 
