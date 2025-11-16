@@ -1,0 +1,170 @@
+/* Tùy chỉnh thanh cuộn */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+body {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+}
+
+#sidebar {
+    width: 250px;
+    flex-shrink: 0;
+}
+
+#main-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+/* Grid cho kệ */
+.shelf-grid {
+    display: grid;
+    grid-template-columns: repeat(20, minmax(30px, 1fr));
+    grid-template-rows: repeat(10, minmax(30px, 1fr));
+    gap: 2px;
+    max-width: 100%;
+    overflow: auto;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 8px;
+}
+
+.grid-cell {
+    width: 100%;
+    padding-bottom: 100%;
+    /* Tạo ô vuông */
+    position: relative;
+    background-color: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.grid-cell-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 2px;
+}
+
+.grid-cell.occupied {
+    background-color: #4a90e2;
+    color: white;
+}
+
+.grid-cell.expired {
+    background-color: #d9534f;
+    color: white;
+}
+
+.grid-cell.nearing-expiry {
+    background-color: #f0ad4e;
+    color: white;
+}
+
+.grid-cell:hover {
+    transform: scale(1.05); /* Tinh chỉnh hiệu ứng hover */
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.grid-cell.occupied:hover .grid-cell-inner {
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.grid-cell:not(.occupied):hover {
+    background-color: #e6f7ff;
+}
+
+/* --- Cải tiến Modal --- */
+.modal {
+    display: flex; /* Luôn là flex để căn giữa */
+    opacity: 0; /* Mặc định ẩn */
+    pointer-events: none; /* Không cho phép click khi ẩn */
+    transform: scale(0.95); /* Thu nhỏ một chút */
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+.modal.active {
+    opacity: 1; /* Hiển thị */
+    pointer-events: auto; /* Cho phép click */
+    transform: scale(1); /* Kích thước thật */
+}
+
+/* Thêm hiệu ứng cho phần nội dung trắng bên trong modal */
+.modal > div {
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: translateY(20px);
+}
+
+.modal.active > div {
+    transform: translateY(0);
+}
+
+
+/* (ĐÃ SỬA LỖI) Các lớp CSS tiện ích, dùng @apply */
+.form-input {
+    @apply mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+}
+
+.form-input-disabled {
+    @apply form-input bg-gray-100 text-gray-500;
+}
+
+.form-select {
+    @apply form-input;
+}
+
+.label-style {
+    @apply block text-sm font-medium text-gray-700;
+}
+
+.th-cell {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.td-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-700;
+}
+
+.nav-link {
+    @apply flex items-center px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors;
+}
+
+.nav-link.active {
+    @apply bg-blue-600 text-white;
+}

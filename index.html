@@ -7,161 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
-    <style>
-        /* Tùy chỉnh thanh cuộn */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #555;
-        }
-
-        body {
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-            font-family: 'Inter', sans-serif;
-        }
-
-        #sidebar {
-            width: 250px;
-            flex-shrink: 0;
-        }
-
-        #main-content {
-            flex-grow: 1;
-            overflow-y: auto;
-            height: 100vh;
-        }
-
-        /* Grid cho kệ */
-        .shelf-grid {
-            display: grid;
-            grid-template-columns: repeat(20, minmax(30px, 1fr));
-            grid-template-rows: repeat(10, minmax(30px, 1fr));
-            gap: 2px;
-            max-width: 100%;
-            overflow: auto;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-            padding: 5px;
-            border-radius: 8px;
-        }
-
-        .grid-cell {
-            width: 100%;
-            padding-bottom: 100%;
-            /* Tạo ô vuông */
-            position: relative;
-            background-color: #ffffff;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .grid-cell-inner {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 500;
-            color: #ffffff;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            padding: 2px;
-        }
-
-        .grid-cell.occupied {
-            background-color: #4a90e2;
-            color: white;
-        }
-
-        .grid-cell.expired {
-            background-color: #d9534f;
-            color: white;
-        }
-
-        .grid-cell.nearing-expiry {
-            background-color: #f0ad4e;
-            color: white;
-        }
-
-        .grid-cell:hover {
-            transform: scale(1.1);
-            z-index: 10;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .grid-cell.occupied:hover .grid-cell-inner {
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-
-        .grid-cell:not(.occupied):hover {
-            background-color: #e6f7ff;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        /* (ĐÃ SỬA LỖI) Các lớp CSS tiện ích, dùng @apply */
-        .form-input {
-            @apply mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
-        }
-
-        .form-input-disabled {
-            @apply form-input bg-gray-100 text-gray-500;
-        }
-
-        .form-select {
-            @apply form-input;
-        }
-
-        .label-style {
-            @apply block text-sm font-medium text-gray-700;
-        }
-
-        .th-cell {
-            @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
-        }
-
-        .td-cell {
-            @apply px-6 py-4 whitespace-nowrap text-sm text-gray-700;
-        }
-
-        .nav-link {
-            @apply flex items-center px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors;
-        }
-
-        .nav-link.active {
-            @apply bg-blue-600 text-white;
-        }
-    </style>
+    
+    <link href="assets/css/custom.css" rel="stylesheet" />
 </head>
 <body class="bg-gray-100">
 
@@ -224,7 +71,7 @@
                         <option value="nearing">Sắp hết hạn</option>
                         <option value="expired">Quá hạn</option>
                     </select>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 col-span-full">Tìm Kiếm</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 col-span-full transition-all duration-150">Tìm Kiếm</button>
                 </form>
                 
                 <div class="overflow-x-auto">
@@ -270,7 +117,7 @@
         <section id="users-page" class="page-content p-8 hidden">
             <h2 class="text-3xl font-bold mb-6">Quản Lý Người Dùng</h2>
             <div class="bg-white p-6 shadow-lg rounded-lg">
-                <button id="add-user-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mb-4"><i class="fas fa-plus mr-2"></i> Thêm Người Dùng Mới</button>
+                <button id="add-user-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 mb-4 transition-all duration-150"><i class="fas fa-plus mr-2"></i> Thêm Người Dùng Mới</button>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-100">
@@ -347,9 +194,9 @@
                 </div>
 
                 <div class="p-6 bg-gray-50 border-t flex justify-end space-x-3">
-                    <button type="button" id="delete-box-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 hidden">Xóa Thùng</button>
-                    <button type="button" id="close-modal-btn" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">Đóng</button>
-                    <button type="submit" id="save-box-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Lưu Thay Đổi</button>
+                    <button type="button" id="delete-box-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 hidden transition-all duration-150">Xóa Thùng</button>
+                    <button type="button" id="close-modal-btn" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-all duration-150">Đóng</button>
+                    <button type="submit" id="save-box-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-150">Lưu Thay Đổi</button>
                 </div>
             </form>
         </div>
@@ -359,7 +206,7 @@
         <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
             <div class="p-6 text-center">
                 <p id="alert-message" class="text-lg mb-4"></p>
-                <button id="alert-ok-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">OK</button>
+                <button id="alert-ok-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-150">OK</button>
             </div>
         </div>
     </div>
@@ -411,9 +258,9 @@
                 </div>
 
                 <div class="p-6 bg-gray-50 border-t flex justify-end space-x-3">
-                    <button type="button" id="delete-user-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 hidden">Xóa User</d>
-                    <button type="button" id="close-user-modal-btn" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">Đóng</button>
-                    <button type="submit" id="save-user-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Lưu Lại</button>
+                    <button type="button" id="delete-user-btn" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 hidden transition-all duration-150">Xóa User</d>
+                    <button type="button" id="close-user-modal-btn" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-all duration-150">Đóng</button>
+                    <button type="submit" id="save-user-btn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all duration-150">Lưu Lại</button>
                 </div>
             </form>
         </div>
