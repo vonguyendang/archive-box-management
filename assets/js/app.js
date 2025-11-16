@@ -8,10 +8,11 @@ class App {
         this.shelves = []; // Sẽ được tải từ API
         this.roles = []; // Sẽ được tải từ API
         this.charts = {}; // Lưu trữ các đối tượng chart
+        this.currentUser = null; // Lưu thông tin người dùng đăng nhập
 
         this.cacheElements();
         this.registerEventListeners();
-        this.init();
+        this.init(); // Khởi tạo
     }
 
     // Lưu các phần tử DOM thường dùng
@@ -54,6 +55,9 @@ class App {
             
             // Trang Stats
             statsPage: document.getElementById('stats-page'),
+            
+            // Nút Đăng xuất
+            logoutBtn: document.getElementById('logout-btn'),
         };
     }
 
@@ -64,8 +68,15 @@ class App {
             link.addEventListener('click', (e) => this.handleNavClick(e));
         });
 
-        // Tabs kệ
-        this.dom.shelfTabsContainer.addEventListener('click', (e) => this.handleShelfTabClick(e));
+        // Tabs kệ (CẬP NHẬT: Thêm event cho nút Thêm Kệ)
+        this.dom.shelfTabsContainer.addEventListener('click', (e) => {
+            if (e.target.tagName === 'A') {
+                this.handleShelfTabClick(e);
+            }
+            if (e.target.id === 'add-shelf-btn') {
+                this.handleAddShelf();
+            }
+        });
 
         // Grid
         this.dom.shelfGrid.addEventListener('click', (e) => this.handleGridClick(e));
@@ -112,60 +123,81 @@ class App {
         this.dom.userModalCloseBtn.addEventListener('click', () => this.hideUserModal());
         this.dom.userForm.addEventListener('submit', (e) => this.handleSaveUser(e));
         this.dom.userModalDeleteBtn.addEventListener('click', () => this.handleDeleteUser());
-
-        // Sự kiện Đăng Xuất
-    const logoutBtn = document.getElementById('logout-btn');
-    if(logoutBtn) {
-        logoutBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            await fetch('api/logout.php');
-            window.location.href = 'login.html';
-        });
-    }
-    }
-
-    // Khởi tạo ứng dụng
-    async init() {
-        try {
-        const authRes = await fetch('api/check_session.php');
-        if (!authRes.ok) {
-            window.location.href = 'login.html'; // Chưa đăng nhập -> Đá về Login
-            return;
+        
+        // Sự kiện Đăng xuất
+        if(this.dom.logoutBtn) {
+            this.dom.logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await fetch('api/logout.php');
+                window.location.href = 'login.html';
+            });
         }
-        const authData = await authRes.json();
-        // Bạn có thể lưu thông tin user vào this.currentUser nếu cần
-        console.log("Chào mừng:", authData.user.fullname);
-    } catch (e) {
-        window.location.href = 'login.html';
-        return;
     }
+
+    // (MỚI) Tách riêng hàm check Auth
+    async checkAuthentication() {
         try {
-            // Tải song song cả Kệ và Vai Trò
+            const authRes = await fetch('api/check_session.php');
+            if (!authRes.ok) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            const authData = await authRes.json();
+            this.currentUser = authData.user;
+            console.log(`Đã đăng nhập với tư cách: ${this.currentUser.fullname} (Role: ${this.currentUser.role_id})`);
+            
+            // (MỚI) ẨN TRANG QUẢN LÝ USER NẾU KHÔNG PHẢI ADMIN
+            if (this.currentUser.role_id != 1) { // 1 = admin
+                const userNav = document.querySelector('a[data-page="users"]');
+                if (userNav) {
+                    userNav.parentElement.style.display = 'none';
+                }
+            }
+            return true;
+        } catch (e) {
+            window.location.href = 'login.html';
+            return false;
+        }
+    }
+
+    // (MỚI) Tách riêng hàm tải dữ liệu ban đầu
+    async loadInitialData() {
+        try {
             const [rolesResponse, shelvesResponse] = await Promise.all([
                 fetch('api/get_roles.php'),
-                fetch('api/get_shelves.php') // Tải kệ từ API
+                fetch('api/get_shelves.php')
             ]);
 
             if (!rolesResponse.ok) throw new Error('Lỗi khi tải danh sách vai trò');
             this.roles = await rolesResponse.json();
             
             if (!shelvesResponse.ok) throw new Error('Lỗi khi tải danh sách kệ');
-            this.shelves = await shelvesResponse.json();
+            this.shelves = await shelvesResponse.json(); 
             
-            this.renderShelfTabs();
+            this.renderShelfTabs(); // (CẬP NHẬT) Sẽ ẩn/hiện nút Thêm Kệ
             this.renderSearchFilters();
-            this.loadRolesIntoSelect(); // Điền vai trò vào modal user
+            this.loadRolesIntoSelect(); 
             
-            if (this.shelves.length > 0) {
-                this.currentShelfId = this.shelves[0].id; // Đặt kệ đầu tiên
+            if(this.shelves.length > 0) {
+                 this.currentShelfId = this.shelves[0].id;
             }
-            
-            this.navigateTo('dashboard'); // Trang mặc định
-            await this.renderShelfGrid(); // Tải grid cho kệ đầu tiên
-
         } catch (error) {
             this.showAlert(`Lỗi tải dữ liệu ban đầu: ${error.message}`);
         }
+    }
+
+    // Khởi tạo ứng dụng
+    async init() {
+        // 1. KIỂM TRA ĐĂNG NHẬP (Bảo vệ trang)
+        const loggedIn = await this.checkAuthentication();
+        if (!loggedIn) return; // Dừng lại nếu chưa đăng nhập
+
+        // 2. Tải dữ liệu ban đầu (Kệ, Vai trò)
+        await this.loadInitialData();
+        
+        // 3. Tải trang mặc định
+        this.navigateTo('dashboard');
+        await this.renderShelfGrid();
     }
     
     // Hiển thị thông báo
@@ -192,22 +224,24 @@ class App {
         });
 
         // Tải dữ liệu khi chuyển trang
-        if (page === 'stats' && !this.charts.statusChart) {
-            this.renderStatsCharts(); // Chỉ render lần đầu
+        if (page === 'stats') {
+            this.renderStatsCharts();
         }
         if(page === 'search') {
-            this.renderSearchResults(); // Luôn tải lại khi vào trang
+            this.renderSearchResults();
         }
         if (page === 'users') {
-            this.renderUsersTable(); // Luôn tải lại khi vào trang
+            this.renderUsersTable();
         }
     }
 
     // === Dashboard (Kệ) ===
+    
+    // (CẬP NHẬT) Chỉ hiển thị nút "+ Thêm Kệ" cho Admin (1) và Staff (2)
     renderShelfTabs() {
         this.dom.shelfTabsContainer.innerHTML = '';
         this.shelves.forEach((shelf, index) => {
-            const isActive = index === 0;
+            const isActive = this.currentShelfId === shelf.id;
             this.dom.shelfTabsContainer.innerHTML += `
                 <li class="mr-2">
                     <a href="#" data-shelf-id="${shelf.id}" 
@@ -217,16 +251,60 @@ class App {
                 </li>
             `;
         });
+        
+        // (*** ĐÃ SỬA LOGIC Ở ĐÂY ***)
+        // Chỉ Admin (1) hoặc Staff (2) mới thấy nút này
+        if (this.currentUser && (this.currentUser.role_id == 1 || this.currentUser.role_id == 2)) {
+            this.dom.shelfTabsContainer.innerHTML += `
+                <li class="ml-2">
+                    <button id="add-shelf-btn" class="p-4 text-green-500 hover:text-green-700 font-medium transition-colors" title="Thêm kệ mới">
+                        <i class="fas fa-plus"></i> Thêm Kệ
+                    </button>
+                </li>
+            `;
+        }
     }
     
     handleShelfTabClick(e) {
-        if (e.target.tagName === 'A') {
-            e.preventDefault();
-            this.currentShelfId = parseInt(e.target.dataset.shelfId);
-            this.renderShelfGrid(); // Tải lại grid
+        e.preventDefault();
+        this.currentShelfId = parseInt(e.target.dataset.shelfId);
+        this.renderShelfGrid(); // Tải lại grid
+        
+        document.querySelectorAll('#shelf-tabs a').forEach(a => a.className = "inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300");
+        e.target.className = "inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active";
+    }
+
+    // (MỚI) Hàm xử lý thêm kệ
+    async handleAddShelf() {
+        const newCode = prompt("Nhập ký hiệu kệ mới (1 chữ cái, ví dụ: H):");
+        
+        if (!newCode) return; // Người dùng nhấn Cancel
+        
+        if (newCode.length !== 1 || !/^[A-Z]$/i.test(newCode)) {
+            this.showAlert("Ký hiệu kệ phải là 1 chữ cái (A-Z).");
+            return;
+        }
+
+        try {
+            const response = await fetch('api/add_shelf.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ shelf_code: newCode.toUpperCase() })
+            });
             
-            document.querySelectorAll('#shelf-tabs a').forEach(a => a.className = "inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300");
-            e.target.className = "inline-block p-4 text-blue-600 border-b-2 border-blue-600 rounded-t-lg active";
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Lỗi không xác định');
+            
+            this.showAlert(`Thêm kệ "${result.shelf_code}" thành công!`);
+            
+            // Tải lại danh sách kệ và vẽ lại
+            await this.loadInitialData(); 
+            this.currentShelfId = result.id; // Tự động chọn kệ mới
+            this.renderShelfTabs();
+            this.renderShelfGrid();
+
+        } catch (error) {
+            this.showAlert(`Lỗi khi thêm kệ: ${error.message}`);
         }
     }
 
@@ -238,15 +316,16 @@ class App {
         this.dom.shelfGrid.innerHTML = '<div class="col-span-30 text-center p-10">Đang tải...</div>'; // Loading state
 
         try {
+            // (SỬA LỖI) Gọi đúng `get_boxs.php`
             const response = await fetch(`api/get_boxs.php?shelf_id=${this.currentShelfId}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            const boxs = await response.json();
+            const boxes = await response.json();
             
-            const boxMap = new Map(boxs.map(box => [`${box.row}-${box.col}`, box]));
+            const boxMap = new Map(boxes.map(box => [`${box.row}-${box.col}`, box]));
             
             let gridHtml = '';
-            for (let r = 1; r <= 20; r++) { // 20 Tầng
-                for (let c = 1; c <= 30; c++) { // 30 Ô
+            for (let r = 1; r <= 10; r++) { // 10 Tầng
+                for (let c = 1; c <= 20; c++) { // 20 Ô
                     const box = boxMap.get(`${r}-${c}`);
                     let cellClass = 'grid-cell';
                     let cellContent = `${r}.${c}`;
@@ -300,6 +379,7 @@ class App {
         if (boxId) { // Xem/Sửa
             this.dom.boxModalTitle.textContent = 'Đang tải chi tiết thùng...';
             try {
+                // (SỬA LỖI) Gọi đúng `get_boxs.php`
                 const response = await fetch(`api/get_boxs.php?id=${boxId}`);
                 if (!response.ok) throw new Error('Không tìm thấy thùng');
                 const box = await response.json();
@@ -422,6 +502,7 @@ class App {
 
     // === Search ===
     renderSearchFilters() {
+        this.dom.filterShelf.innerHTML = '<option value="">Tất cả kệ</option>'; // Reset
         this.shelves.forEach(shelf => {
             this.dom.filterShelf.innerHTML += `<option value="${shelf.id}">Kệ ${shelf.shelf_code}</option>`;
         });
@@ -443,6 +524,7 @@ class App {
         this.dom.searchResultsBody.innerHTML = `<tr><td colspan="9" class="text-center p-6 text-gray-500">Đang tìm kiếm...</td></tr>`;
 
         try {
+            // (SỬA LỖI) Gọi đúng `get_boxs.php`
             const response = await fetch(`api/get_boxs.php?${params.toString()}`);
             if (!response.ok) throw new Error('Lỗi máy chủ');
             const results = await response.json();
@@ -492,14 +574,84 @@ class App {
     }
     
     // === Stats ===
-    renderStatsCharts() {
-        this.dom.statsPage.innerHTML = `
-            <h2 class="text-3xl font-bold mb-6">Thống Kê Báo Cáo</h2>
-            <p class="text-gray-600">Bạn cần tự triển khai hàm <code>renderStatsCharts</code> trong <code>app.js</code> bằng cách fetch dữ liệu từ <code>api/get_stats.php</code> và dùng Chart.js để vẽ biểu đồ.</p>
-        `;
+    // (ĐÃ TRIỂN KHAI) Hoàn thiện chức năng Thống Kê
+    async renderStatsCharts() {
+        // Đảm bảo các thẻ canvas đã được tải
+        const statusCanvas = document.getElementById('status-chart');
+        const shelfCanvas = document.getElementById('shelf-chart');
+        const yearCanvas = document.getElementById('year-chart');
+
+        if (!statusCanvas || !shelfCanvas || !yearCanvas) {
+            this.dom.statsPage.innerHTML = `<h2 class="text-3xl font-bold mb-6">Thống Kê Báo Cáo</h2><p class="text-red-500">Lỗi: Không tìm thấy thẻ canvas trong index.html.</p>`;
+            return;
+        }
+
+        this.dom.statsPage.querySelector('h2').innerHTML = "Thống Kê Báo Cáo"; // Reset
+        
+        try {
+            // Gọi API
+            const response = await fetch('api/get_stats.php');
+            if(!response.ok) throw new Error('Lỗi tải dữ liệu thống kê');
+            const stats = await response.json();
+
+            // Hủy chart cũ nếu tồn tại
+            Object.values(this.charts).forEach(chart => {
+                if (chart && typeof chart.destroy === 'function') chart.destroy();
+            });
+
+            // 1. Chart Trạng Thái (Doughnut)
+            const statusCtx = statusCanvas.getContext('2d');
+            this.charts.statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Đang lưu (Tốt)', 'Sắp hết hạn', 'Quá hạn'],
+                    datasets: [{
+                        data: [stats.statusCount.good, stats.statusCount.nearing, stats.statusCount.expired],
+                        backgroundColor: ['#4a90e2', '#f0ad4e', '#d9534f'],
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true }
+            });
+
+            // 2. Chart Kệ (Bar)
+            const shelfCtx = shelfCanvas.getContext('2d');
+            this.charts.shelfChart = new Chart(shelfCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(stats.shelfCount),
+                    datasets: [{
+                        label: 'Số lượng thùng',
+                        data: Object.values(stats.shelfCount),
+                        backgroundColor: '#3b82f6',
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+            });
+            
+            // 3. Chart Năm (Line)
+            const yearCtx = yearCanvas.getContext('2d');
+            this.charts.yearChart = new Chart(yearCtx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(stats.yearCount),
+                    datasets: [{
+                        label: 'Số lượng thùng theo năm',
+                        data: Object.values(stats.yearCount),
+                        backgroundColor: '#16a34a',
+                        borderColor: '#16a34a',
+                        fill: false,
+                        tension: 0.1
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+            });
+
+        } catch (error) {
+            this.dom.statsPage.innerHTML = `<h2 class="text-3xl font-bold mb-6">Thống Kê Báo Cáo</h2><p class="text-red-500 text-center p-10">${error.message}</p>`;
+        }
     }
     
-    // === (MỚI) Quản Lý User ===
+    // === Quản Lý User ===
     
     // 1. Tải danh sách vai trò vào modal
     loadRolesIntoSelect() {
@@ -515,7 +667,10 @@ class App {
 
         try {
             const response = await fetch('api/get_users.php');
-            if (!response.ok) throw new Error('Lỗi khi tải người dùng');
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Lỗi khi tải người dùng');
+            }
             const users = await response.json();
             
             const tbody = this.dom.usersTableBody;
@@ -627,7 +782,8 @@ class App {
         }
 
         try {
-            const response = await fetch('api/save_user.php', {
+            // (SỬA LỖI) Gọi đúng `save.user.php`
+            const response = await fetch('api/save.user.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -651,8 +807,14 @@ class App {
         const id = userId || parseInt(document.getElementById('user-id').value);
         if (!id) return;
         
-        if (id === 1) {
+        if (id === 1) { // Giả sử user admin gốc có ID = 1
             this.showAlert('Không thể xóa tài khoản Quản Trị Viên gốc.');
+            return;
+        }
+        
+        // Không cho người dùng tự xóa chính mình
+        if (this.currentUser && id === this.currentUser.id) {
+            this.showAlert('Bạn không thể tự xóa chính mình.');
             return;
         }
 
