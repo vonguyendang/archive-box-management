@@ -18,11 +18,15 @@
     background: #555;
 }
 
-/* Grid cho kệ */
+/* (*** CẬP NHẬT: XÓA 'body' và '#sidebar' ***) */
+
+
+/* (*** CẬP NHẬT: XÓA HOÀN TOÀN KHỐI CSS '.shelf-grid' ***) */
+/* Các thuộc tính grid-template-columns/rows sẽ được đặt bằng JS */
 .shelf-grid {
-    display: grid;
-    grid-template-columns: repeat(20, minmax(30px, 1fr));
-    grid-template-rows: repeat(10, minmax(30px, 1fr));
+    display: grid; 
+    /* ĐÃ XÓA grid-template-columns */
+    /* ĐÃ XÓA grid-template-rows */
     gap: 2px;
     max-width: 100%;
     overflow: auto;
@@ -31,6 +35,7 @@
     padding: 5px;
     border-radius: 8px;
 }
+
 
 .grid-cell {
     width: 100%;
@@ -146,5 +151,4 @@ th .sort-link.active i {
 
 
 /* --- Cải tiến Nav/Sidebar --- */
-/* CẬP NHẬT: Đã XÓA khối .nav-link.active 
-   vì logic đã được chuyển sang JavaScript */
+/* (Đã XÓA .nav-link.active) */

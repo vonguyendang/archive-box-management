@@ -15,6 +15,9 @@ class App {
             column: 'shelf_code', // Cột mặc định
             direction: 'asc' // Hướng mặc định
         };
+        
+        // (*** MỚI: Thêm biến lưu trữ thùng trên kệ hiện tại ***)
+        this.currentBoxesOnShelf = [];
 
         this.cacheElements();
         this.registerEventListeners();
@@ -38,6 +41,7 @@ class App {
             shelfTabsContainer: document.getElementById('shelf-tabs'),
             shelfGrid: document.getElementById('shelf-grid'),
             currentShelfLabel: document.getElementById('current-shelf-label'),
+            editShelfBtn: document.getElementById('edit-shelf-btn'), 
             
             boxModal: document.getElementById('box-modal'),
             boxModalTitle: document.getElementById('box-modal-title'),
@@ -71,6 +75,23 @@ class App {
             logsTableBody: document.getElementById('logs-table-body'),
             
             logoutBtn: document.getElementById('logout-btn'),
+
+            shelfModal: document.getElementById('shelf-modal'),
+            shelfModalTitle: document.getElementById('shelf-modal-title'),
+            shelfModalCloseBtn: document.getElementById('close-shelf-modal-btn'),
+            shelfForm: document.getElementById('shelf-form'),
+            shelfEditId: document.getElementById('shelf-edit-id'),
+            shelfEditCode: document.getElementById('shelf-edit-code'),
+            shelfEditRows: document.getElementById('shelf-edit-rows'),
+            shelfEditCols: document.getElementById('shelf-edit-cols'),
+            
+            // (*** MỚI: Thêm các phần tử Modal Xóa Kệ ***)
+            deleteShelfBtnFromEdit: document.getElementById('delete-shelf-btn-from-edit'),
+            deleteShelfConfirmModal: document.getElementById('delete-shelf-confirm-modal'),
+            deleteShelfConfirmLabel: document.getElementById('delete-shelf-confirm-label'),
+            deleteShelfConfirmInput: document.getElementById('delete-shelf-confirm-input'),
+            closeDeleteShelfConfirmBtn: document.getElementById('close-delete-shelf-confirm-btn'),
+            deleteShelfConfirmBtn: document.getElementById('delete-shelf-confirm-btn'),
         };
     }
 
@@ -88,13 +109,40 @@ class App {
         });
 
         this.dom.shelfTabsContainer.addEventListener('click', (e) => {
-            if (e.target.tagName === 'A') {
+            const tabLink = e.target.closest('a[data-shelf-id]');
+            if (tabLink) {
                 this.handleShelfTabClick(e);
             }
-            if (e.target.id === 'add-shelf-btn') {
+            const addBtn = e.target.closest('#add-shelf-btn');
+            if (addBtn) {
                 this.handleAddShelf();
             }
         });
+
+        if (this.dom.editShelfBtn) {
+            this.dom.editShelfBtn.addEventListener('click', () => this.showShelfModal(false)); // false = Edit mode
+        }
+        if (this.dom.shelfModalCloseBtn) {
+            this.dom.shelfModalCloseBtn.addEventListener('click', () => this.hideShelfModal());
+        }
+        if (this.dom.shelfForm) {
+            this.dom.shelfForm.addEventListener('submit', (e) => this.handleSaveShelf(e));
+        }
+        
+        // (*** MỚI: Thêm sự kiện cho quy trình Xóa Kệ ***)
+        if (this.dom.deleteShelfBtnFromEdit) {
+            this.dom.deleteShelfBtnFromEdit.addEventListener('click', () => this.showDeleteShelfConfirm());
+        }
+        if (this.dom.closeDeleteShelfConfirmBtn) {
+            this.dom.closeDeleteShelfConfirmBtn.addEventListener('click', () => this.hideDeleteShelfConfirm());
+        }
+        if (this.dom.deleteShelfConfirmInput) {
+            this.dom.deleteShelfConfirmInput.addEventListener('input', () => this.handleDeleteShelfInput());
+        }
+        if (this.dom.deleteShelfConfirmBtn) {
+            this.dom.deleteShelfConfirmBtn.addEventListener('click', () => this.handleDeleteShelfConfirm());
+        }
+
 
         this.dom.shelfGrid.addEventListener('click', (e) => this.handleGridClick(e));
 
@@ -179,7 +227,7 @@ class App {
         this.dom.sidebarToggleIcon.className = isClosed ? 'fas fa-bars fa-lg' : 'fas fa-times fa-lg';
     }
 
-    // (*** CẬP NHẬT HÀM NÀY ***)
+
     async checkAuthentication() {
         try {
             const authRes = await fetch('api/check_session.php');
@@ -191,15 +239,18 @@ class App {
             this.currentUser = authData.user;
             console.log(`Đã đăng nhập với tư cách: ${this.currentUser.fullname} (Role: ${this.currentUser.role_id})`);
             
-            // Chỉ ẩn "Quản lý User" nếu không phải Admin
             if (this.currentUser.role_id != 1) {
                 const userNav = document.querySelector('a[data-page="users"]');
                 if (userNav) userNav.parentElement.style.display = 'none';
-                
-                // (*** XÓA BỎ: Khối code ẩn "Quản lý Logs" đã bị xóa ***)
-                // const logsNav = document.querySelector('a[data-page="logs"]');
-                // if (logsNav) logsNav.parentElement.style.display = 'none';
             }
+            
+            const allowedRoles = [1, 2]; // 1 = admin, 2 = staff
+            if (!allowedRoles.includes(this.currentUser.role_id)) {
+                if (this.dom.editShelfBtn) this.dom.editShelfBtn.style.display = 'none';
+                // (*** MỚI: Ẩn nút xóa khỏi modal nếu không có quyền ***)
+                if (this.dom.deleteShelfBtnFromEdit) this.dom.deleteShelfBtnFromEdit.style.display = 'none';
+            }
+
             return true;
         } catch (e) {
             window.location.href = 'login.html';
@@ -220,12 +271,15 @@ class App {
             if (!shelvesResponse.ok) throw new Error('Lỗi khi tải danh sách kệ');
             this.shelves = await shelvesResponse.json(); 
             
-            this.renderShelfTabs();
+            this.renderShelfTabs(); 
             this.renderSearchFilters();
             this.loadRolesIntoSelect(); 
             
             if(this.shelves.length > 0) {
                  this.currentShelfId = this.shelves[0].id;
+            } else {
+                // (*** MỚI: Xử lý trường hợp không có kệ nào ***)
+                this.currentShelfId = null;
             }
         } catch (error) {
             this.showAlert(`Lỗi tải dữ liệu ban đầu: ${error.message}`);
@@ -319,7 +373,8 @@ class App {
             `;
         });
         
-        if (this.currentUser && (this.currentUser.role_id == 1 || this.currentUser.role_id == 2)) {
+        const allowedRoles = [1, 2]; 
+        if (this.currentUser && allowedRoles.includes(this.currentUser.role_id)) {
             this.dom.shelfTabsContainer.innerHTML += `
                 <li class="ml-2">
                     <button id="add-shelf-btn" class="p-4 text-green-500 hover:text-green-700 font-medium transition-colors" title="Thêm kệ mới">
@@ -340,54 +395,41 @@ class App {
     }
 
     async handleAddShelf() {
-        const newCode = prompt("Nhập ký hiệu kệ mới (1 chữ cái, ví dụ: H):");
-        
-        if (!newCode) return; 
-        
-        if (newCode.length !== 1 || !/^[A-Z]$/i.test(newCode)) {
-            this.showAlert("Ký hiệu kệ phải là 1 chữ cái (A-Z).");
-            return;
-        }
-
-        try {
-            const response = await fetch('api/add_shelf.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ shelf_code: newCode.toUpperCase() })
-            });
-            
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.error || 'Lỗi không xác định');
-            
-            this.showAlert(`Thêm kệ "${result.shelf_code}" thành công!`);
-            
-            await this.loadInitialData(); 
-            this.currentShelfId = result.id; 
-            this.renderShelfTabs();
-            this.renderShelfGrid();
-
-        } catch (error) {
-            this.showAlert(`Lỗi khi thêm kệ: ${error.message}`);
-        }
+        this.showShelfModal(true); // true = Add mode
     }
 
     async renderShelfGrid() {
-        const shelf = this.shelves.find(s => s.id === this.currentShelfId);
-        if (!shelf) return;
+        // (*** CẬP NHẬT: Lưu trữ thùng hiện tại ***)
+        this.currentBoxesOnShelf = []; // Reset
         
-        this.dom.currentShelfLabel.textContent = `Sơ Đồ Kệ ${shelf.shelf_code}`;
+        const shelf = this.shelves.find(s => s.id === this.currentShelfId);
+        if (!shelf) {
+             this.dom.shelfGrid.innerHTML = `<div class="text-center p-10 text-gray-500">Không có kệ nào được chọn. Hãy thêm một kệ mới.</div>`;
+            this.dom.currentShelfLabel.textContent = 'Chưa có kệ nào';
+            this.dom.editShelfBtn.classList.add('hidden'); // Ẩn nút sửa nếu không có kệ
+             return;
+        }
+        
+        this.dom.editShelfBtn.classList.remove('hidden'); // Hiện nút sửa
+        this.dom.currentShelfLabel.textContent = `Sơ Đồ Kệ ${shelf.shelf_code} (${shelf.num_rows}x${shelf.num_cols})`;
         this.dom.shelfGrid.innerHTML = '<div class="col-span-30 text-center p-10">Đang tải...</div>';
+
+        this.dom.shelfGrid.style.gridTemplateColumns = `repeat(${shelf.num_cols}, minmax(30px, 1fr))`;
+        this.dom.shelfGrid.style.gridTemplateRows = `repeat(${shelf.num_rows}, minmax(30px, 1fr))`;
 
         try {
             const response = await fetch(`api/get_boxs.php?shelf_id=${this.currentShelfId}`);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const boxes = await response.json();
             
+            // (*** MỚI: Lưu lại danh sách thùng ***)
+            this.currentBoxesOnShelf = boxes;
+            
             const boxMap = new Map(boxes.map(box => [`${box.row}-${box.col}`, box]));
             
             let gridHtml = '';
-            for (let r = 1; r <= 10; r++) { 
-                for (let c = 1; c <= 20; c++) { 
+            for (let r = 1; r <= shelf.num_rows; r++) { 
+                for (let c = 1; c <= shelf.num_cols; c++) { 
                     const box = boxMap.get(`${r}-${c}`);
                     let cellClass = 'grid-cell';
                     let cellContent = `${r}.${c}`;
@@ -411,7 +453,7 @@ class App {
             }
             this.dom.shelfGrid.innerHTML = gridHtml;
         } catch (error) {
-            this.dom.shelfGrid.innerHTML = `<div class="col-span-30 text-center p-10 text-red-500">Lỗi khi tải sơ đồ kệ: ${error.message}</div>`;
+            this.dom.shelfGrid.innerHTML = `<div class="text-center p-10 text-red-500">Lỗi khi tải sơ đồ kệ: ${error.message}</div>`;
         }
     }
 
@@ -437,6 +479,7 @@ class App {
         this.dom.boxModal.classList.add('active');
         
         const today = new Date().toISOString().split('T')[0];
+        const fiveYearsLater = new Date(new Date().setFullYear(new Date().getFullYear() + 5)).toISOString().split('T')[0];
 
         if (boxId) { 
             this.dom.boxModalTitle.textContent = 'Đang tải chi tiết thùng...';
@@ -479,7 +522,10 @@ class App {
             document.getElementById('box-row').value = row;
             document.getElementById('box-col').value = col;
             document.getElementById('box-stored_date').value = today;
-            document.getElementById('box-expiry').value = today;
+            document.getElementById('box-expiry').value = fiveYearsLater;
+            document.getElementById('box-stored_by').value = this.currentUser.fullname || this.currentUser.username;
+            document.getElementById('box-agency').value = 'Trung tâm Chất lượng, Chế biến và Phát triển thị trường vùng 6';
+            document.getElementById('box-department').value = 'HÀNH CHÍNH, TỔNG HỢP';
         }
     }
 
@@ -559,6 +605,165 @@ class App {
             }
         }
     }
+
+    // === Modal Kệ (Mới/Cập nhật) ===
+    showShelfModal(isAdding = false) {
+        this.dom.shelfForm.reset();
+        
+        // (*** MỚI: Ẩn/hiện nút xóa ***)
+        const allowedRoles = [1, 2];
+        if (isAdding || !allowedRoles.includes(this.currentUser.role_id)) {
+            this.dom.deleteShelfBtnFromEdit.style.display = 'none';
+        } else {
+            this.dom.deleteShelfBtnFromEdit.style.display = 'block';
+        }
+
+        if (isAdding) {
+            this.dom.shelfModalTitle.textContent = "Thêm Kệ Mới";
+            this.dom.shelfEditId.value = '';
+            this.dom.shelfEditCode.value = '';
+            this.dom.shelfEditRows.value = 10;
+            this.dom.shelfEditCols.value = 20;
+        } else {
+            this.dom.shelfModalTitle.textContent = "Chỉnh Sửa Kệ";
+            const shelf = this.shelves.find(s => s.id === this.currentShelfId);
+            if (!shelf) {
+                this.showAlert('Vui lòng chọn một kệ để sửa.');
+                return;
+            }
+            this.dom.shelfEditId.value = shelf.id;
+            this.dom.shelfEditCode.value = shelf.shelf_code;
+            this.dom.shelfEditRows.value = shelf.num_rows;
+            this.dom.shelfEditCols.value = shelf.num_cols;
+        }
+        
+        this.dom.shelfModal.classList.add('active');
+    }
+
+    hideShelfModal() {
+        this.dom.shelfModal.classList.remove('active');
+    }
+
+    async handleSaveShelf(e) {
+        e.preventDefault();
+        
+        const id = this.dom.shelfEditId.value ? parseInt(this.dom.shelfEditId.value) : null;
+        const code = this.dom.shelfEditCode.value;
+        const rows = parseInt(this.dom.shelfEditRows.value);
+        const cols = parseInt(this.dom.shelfEditCols.value);
+
+        if (!code || !rows || !cols) {
+            this.showAlert('Vui lòng điền đầy đủ thông tin.');
+            return;
+        }
+
+        const url = id ? 'api/save_shelf.php' : 'api/add_shelf.php';
+        const data = {
+            id: id, 
+            shelf_code: code,
+            num_rows: rows,
+            num_cols: cols
+        };
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Lỗi không xác định');
+            
+            this.showAlert(result.message);
+            this.hideShelfModal();
+            
+            await this.loadInitialData(); 
+            this.currentShelfId = result.id; 
+            
+            this.renderShelfTabs();
+            this.renderShelfGrid();
+            this.renderSearchFilters();
+            
+        } catch (error) {
+            this.showAlert(`Lỗi khi lưu kệ: ${error.message}`);
+        }
+    }
+    
+    // (*** MỚI: Toàn bộ hàm cho quy trình Xóa Kệ ***)
+    showDeleteShelfConfirm() {
+        const shelf = this.shelves.find(s => s.id === this.currentShelfId);
+        if (!shelf) return; // Không có kệ để xóa
+
+        // KIỂM TRA QUAN TRỌNG: Kiểm tra xem kệ có rỗng không
+        // (Chúng ta dùng this.currentBoxesOnShelf đã được lấy từ renderShelfGrid)
+        if (this.currentBoxesOnShelf.length > 0) {
+            this.showAlert(`Không thể xóa kệ ${shelf.shelf_code} vì vẫn còn ${this.currentBoxesOnShelf.length} thùng hồ sơ. Vui lòng di chuyển hoặc xóa hết thùng hồ sơ trước.`);
+            return;
+        }
+
+        // Nếu kệ rỗng, hiển thị modal xác nhận
+        this.dom.deleteShelfConfirmLabel.innerHTML = `Hành động này không thể hoàn tác. Để xác nhận, vui lòng nhập <strong>${shelf.shelf_code}</strong> vào ô bên dưới.`;
+        this.dom.deleteShelfConfirmInput.value = '';
+        this.dom.deleteShelfConfirmInput.dataset.expectedCode = shelf.shelf_code;
+        this.dom.deleteShelfConfirmBtn.disabled = true;
+
+        this.hideShelfModal(); // Ẩn modal edit
+        this.dom.deleteShelfConfirmModal.classList.add('active'); // Hiện modal confirm
+    }
+
+    hideDeleteShelfConfirm() {
+        this.dom.deleteShelfConfirmModal.classList.remove('active');
+    }
+
+    handleDeleteShelfInput() {
+        const input = this.dom.deleteShelfConfirmInput.value;
+        const expected = this.dom.deleteShelfConfirmInput.dataset.expectedCode;
+        // Bật nút nếu gõ chính xác
+        this.dom.deleteShelfConfirmBtn.disabled = (input !== expected);
+    }
+
+    async handleDeleteShelfConfirm() {
+        const id = this.currentShelfId;
+        if (!id) return;
+        
+        // Vô hiệu hóa nút để tránh click đúp
+        this.dom.deleteShelfConfirmBtn.disabled = true;
+        this.dom.deleteShelfConfirmBtn.textContent = "Đang xóa...";
+
+        try {
+            const response = await fetch('api/delete_shelf.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: id })
+            });
+            
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || 'Lỗi không xác định');
+
+            this.showAlert(result.message);
+            this.hideDeleteShelfConfirm();
+
+            // Tải lại toàn bộ dữ liệu, vì danh sách kệ đã thay đổi
+            await this.loadInitialData(); 
+            
+            // Chọn kệ đầu tiên (nếu có)
+            this.currentShelfId = this.shelves.length > 0 ? this.shelves[0].id : null;
+
+            // Vẽ lại
+            this.renderShelfTabs();
+            this.renderShelfGrid();
+            this.renderSearchFilters();
+            
+        } catch (error) {
+            this.showAlert(`Lỗi khi xóa kệ: ${error.message}`);
+        } finally {
+            // Khôi phục nút
+            this.dom.deleteShelfConfirmBtn.disabled = false;
+            this.dom.deleteShelfConfirmBtn.textContent = "Xác Nhận Xóa";
+        }
+    }
+
 
     // === Search ===
     renderSearchFilters() {
@@ -919,7 +1124,7 @@ class App {
         }
 
         try {
-            const response = await fetch('api/save.user.php', {
+            const response = await fetch('api/save_user.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
