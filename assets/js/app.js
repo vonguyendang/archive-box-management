@@ -30,7 +30,6 @@ class App {
             sidebarToggleIcon: document.getElementById('sidebar-toggle-icon'),
             navTexts: document.querySelectorAll('.nav-text'),
 
-            // (*** MỚI: Thêm các phần tử User Info ***)
             userInfoFullname: document.getElementById('user-info-fullname'),
             userInfoRole: document.getElementById('user-info-role'),
 
@@ -158,7 +157,6 @@ class App {
             this.dom.sidebar.classList.add('w-64');
             this.dom.navTexts.forEach(t => t.classList.remove('hidden'));
             
-            // (*** CẬP NHẬT: Thêm #user-info-container ***)
             document.querySelectorAll('.nav-link, #logout-btn, #sidebar h1, #user-info-container').forEach(el => {
                 el.classList.remove('justify-center');
             });
@@ -167,7 +165,6 @@ class App {
             this.dom.sidebar.classList.toggle('w-20');
             this.dom.navTexts.forEach(t => t.classList.toggle('hidden'));
 
-            // (*** CẬP NHẬT: Thêm #user-info-container ***)
             document.querySelectorAll('.nav-link, #logout-btn, #sidebar h1, #user-info-container').forEach(el => {
                 el.classList.toggle('justify-center');
             });
@@ -229,14 +226,11 @@ class App {
         }
     }
 
-    // (*** MỚI: Hàm điền thông tin User ***)
     renderUserInfo() {
         if (!this.currentUser || !this.dom.userInfoFullname) return;
 
-        // Set Full Name
         this.dom.userInfoFullname.textContent = this.currentUser.fullname || this.currentUser.username;
 
-        // Find and set Role Name
         const role = this.roles.find(r => r.id === this.currentUser.role_id);
         const roleName = role ? role.role_name : '';
         this.dom.userInfoRole.textContent = roleName;
@@ -248,7 +242,6 @@ class App {
 
         await this.loadInitialData();
         
-        // (*** MỚI: Gọi hàm renderUserInfo ***)
         this.renderUserInfo();
 
         if (window.innerWidth >= 768) {
@@ -271,13 +264,21 @@ class App {
         this.navigateTo(page);
     }
     
+    // (*** CẬP NHẬT HÀM NÀY ***)
     navigateTo(page) {
         this.dom.pageSections.forEach(p => p.classList.add('hidden'));
         const activePage = document.getElementById(`${page}-page`);
         if (activePage) activePage.classList.remove('hidden');
 
+        // CẬP NHẬT: Thay thế logic .active bằng class Tailwind trực tiếp
         this.dom.sidebarLinks.forEach(link => {
-            link.classList.toggle('active', link.dataset.page === page);
+            // Xóa active state khỏi tất cả
+            link.classList.remove('bg-blue-600', 'text-white'); 
+        
+            // Thêm active state cho link được click
+            if (link.dataset.page === page) {
+                link.classList.add('bg-blue-600', 'text-white');
+            }
         });
 
         if (page === 'stats') {
@@ -685,6 +686,7 @@ class App {
 
     
     // === Stats ===
+    // (*** CẬP NHẬT HÀM NÀY ***)
     async renderStatsCharts() {
         const statusCanvas = document.getElementById('status-chart');
         const shelfCanvas = document.getElementById('shelf-chart');
@@ -706,6 +708,7 @@ class App {
                 if (chart && typeof chart.destroy === 'function') chart.destroy();
             });
 
+            // 1. Chart Trạng Thái (Doughnut)
             const statusCtx = statusCanvas.getContext('2d');
             this.charts.statusChart = new Chart(statusCtx, {
                 type: 'doughnut',
@@ -716,9 +719,10 @@ class App {
                         backgroundColor: ['#4a90e2', '#f0ad4e', '#d9534f'],
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: true }
+                options: { responsive: true, maintainAspectRatio: true } 
             });
 
+            // 2. Chart Kệ (Bar)
             const shelfCtx = shelfCanvas.getContext('2d');
             this.charts.shelfChart = new Chart(shelfCtx, {
                 type: 'bar',
@@ -730,9 +734,10 @@ class App {
                         backgroundColor: '#3b82f6',
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } } 
             });
             
+            // 3. Chart Năm (Line)
             const yearCtx = yearCanvas.getContext('2d');
             this.charts.yearChart = new Chart(yearCtx, {
                 type: 'line',
@@ -747,7 +752,7 @@ class App {
                         tension: 0.1
                     }]
                 },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } }
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: false } } } 
             });
 
         } catch (error) {

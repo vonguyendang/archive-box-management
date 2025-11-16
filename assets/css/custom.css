@@ -18,9 +18,6 @@
     background: #555;
 }
 
-/* CẬP NHẬT: Đã XÓA các quy tắc cho 'body' và '#sidebar' 
-   vì chúng đã được xử lý bằng class Tailwind trong index.html */
-
 /* Grid cho kệ */
 .shelf-grid {
     display: grid;
@@ -149,7 +146,5 @@ th .sort-link.active i {
 
 
 /* --- Cải tiến Nav/Sidebar --- */
-/* Lớp .nav-link.active vẫn được giữ lại để JS sử dụng */
-.nav-link.active {
-    @apply bg-blue-600 text-white;
-}
+/* CẬP NHẬT: Đã XÓA khối .nav-link.active 
+   vì logic đã được chuyển sang JavaScript */
