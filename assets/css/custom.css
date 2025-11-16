@@ -94,7 +94,7 @@
 }
 
 .grid-cell:not(.occupied):hover {
-    background-color: #e6f7ff;
+    background-color: #aeb2b3;
 }
 
 /* --- Cải tiến Modal --- */
