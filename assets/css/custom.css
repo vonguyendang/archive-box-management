@@ -18,23 +18,8 @@
     background: #555;
 }
 
-body {
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-    font-family: 'Inter', sans-serif;
-}
-
-#sidebar {
-    width: 250px;
-    flex-shrink: 0;
-}
-
-#main-content {
-    flex-grow: 1;
-    overflow-y: auto;
-    height: 100vh;
-}
+/* CẬP NHẬT: Đã XÓA các quy tắc cho 'body' và '#sidebar' 
+   vì chúng đã được xử lý bằng class Tailwind trong index.html */
 
 /* Grid cho kệ */
 .shelf-grid {
@@ -136,35 +121,35 @@ body {
 }
 
 
-/* (ĐÃ SỬA LỖI) Các lớp CSS tiện ích, dùng @apply */
-.form-input {
-    @apply mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm;
+/* --- Cải tiến Bảng (Table) --- */
+/* Áp dụng cho cả 2 bảng (search & users) */
+tbody tr {
+    /* Sử dụng border-b thay vì divide-y */
+    @apply border-b border-gray-200;
+}
+tbody tr:hover {
+    /* Hiệu ứng hover đẹp mắt */
+    @apply bg-blue-50 transition-colors duration-100;
+}
+tbody tr:last-child {
+    /* Bỏ border cho hàng cuối cùng */
+    @apply border-b-0;
 }
 
-.form-input-disabled {
-    @apply form-input bg-gray-100 text-gray-500;
+/* --- Cải tiến Sắp Xếp Bảng --- */
+th .sort-link {
+    @apply flex items-center space-x-1 text-gray-600 hover:text-gray-900 transition-colors duration-150;
+}
+th .sort-link i {
+    @apply text-gray-400; /* Màu icon mặc định */
+}
+th .sort-link.active i {
+    @apply text-blue-600; /* Màu icon khi active */
 }
 
-.form-select {
-    @apply form-input;
-}
 
-.label-style {
-    @apply block text-sm font-medium text-gray-700;
-}
-
-.th-cell {
-    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
-}
-
-.td-cell {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-700;
-}
-
-.nav-link {
-    @apply flex items-center px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors;
-}
-
+/* --- Cải tiến Nav/Sidebar --- */
+/* Lớp .nav-link.active vẫn được giữ lại để JS sử dụng */
 .nav-link.active {
     @apply bg-blue-600 text-white;
 }
