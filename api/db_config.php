@@ -21,12 +21,17 @@ $options = [
 // Tạo kết nối PDO
 try {
      $pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
+     // Thiết lập múi giờ Việt Nam cho MySQL session
+     $pdo->exec("SET time_zone = '+07:00'");
 } catch (\PDOException $e) {
-     // Nếu kết nối thất bại, "chết" và báo lỗi
+    // Nếu kết nối thất bại, "chết" và báo lỗi
      http_response_code(500);
      echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
      exit;
 }
+
+// Thiết lập múi giờ cho PHP
+date_default_timezone_set('Asia/Ho_Chi_Minh');
 
 // Hàm trợ giúp để trả về JSON và thoát
 function json_response($data, $code = 200) {
